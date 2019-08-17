@@ -9,14 +9,14 @@ npm start
 ### SignUp: 
 ```graphql
 mutation {
-  signup(username: "enmaska@gmail.com", email: "enmaska@gmail.com", password:"12345")
+  signup(username: "Nombre de Usuario", email: "tu@mail.com", password:"12345")
   }
 ```
 
 ### Login: 
 ```graphql
 mutation {
-  login(email: "enmaska@gmail.com", password:"12345")
+  login(email: "tu@mail.com", password:"12345")
   }
 ```
 
