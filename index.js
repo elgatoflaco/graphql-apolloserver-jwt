@@ -1,17 +1,26 @@
+"use strict";
 
+const { ApolloServer } = require("apollo-server");
+const axios = require("axios");
+const mongoose = require("mongoose");
+const config = require("./config");
+const resolvers = require("./lib/resolvers");
+const service = require("./services");
 
-
-
-// using apollo-server 2.x
-const { ApolloServer } = require('apollo-server');
-const axios = require('axios');
-
-const baseURL = `https://jsonplaceholder.typicode.com`;
+mongoose.Promise = require("bluebird");
+mongoose.set("useCreateIndex", true);
+mongoose
+  .connect(config.db, {
+    useNewUrlParser: true,
+    promiseLibrary: require("bluebird")
+  })
+  .then(() => console.log("connection succesful"))
+  .catch(err => console.error("Error connection MongoDB"));
 
 const typeDefs = `type Query {
     users: [User!]!
     user(id: ID!): User
-    posts: [Post!]!
+    posts: [Post!]
     post(id: ID!): Post
   }
   
@@ -35,51 +44,33 @@ const typeDefs = `type Query {
       id
       name
     }
-  }`
-const resolvers = {
-    Query: {
-      users: () => {
-        return axios.get(`${baseURL}/users`).then(res => res.data);
-        // return fetch(`${baseURL}/users`).then(res => res.json());
-      },
-      user: (parent, args) => {
-        const { id } = args;
-        return axios.get(`${baseURL}/users/${id}`).then(res => res.data);
-        // return fetch(`${baseURL}/users/${id}`).then(res => res.json());
-      },
-      posts: () => {
-        return axios.get(`${baseURL}/posts`).then(res => res.data);
-        // return fetch(`${baseURL}/posts`).then(res => res.json());
-      },
-      post: (parent, args) => {
-        const { id } = args;
-        return axios.get(`${baseURL}/posts/${id}`).then(res => res.data);
-        // return fetch(`${baseURL}/posts/${id}`).then(res => res.json());
-      }
-    },
-    Post: {
-      author: parent => {
-        const { id } = parent;
-        return axios.get(`${baseURL}/users/${id}/todos`).then(res => res.data);
-        // return fetch(`${baseURL}/users/${id}/todos`).then(res => res.json());
-      }
-    },
-    User: {
-      posts: parent => {
-        const { id } = parent;
-        return axios.get(`${baseURL}/posts/${id}/todos`).then(res => res.data);
-        // return fetch(`${baseURL}/posts/${id}/todos`).then(res => res.json());
-      }
-    }
-  };
-
+  }
+  
+  type Mutation {
+    "Añadir Usuario"
+    signup (username: String!, email: String!, password: String!): String
+    "Hacer login"
+    login (email: String!, password: String!): String
+  }`;
 
 
 const server = new ApolloServer({
- typeDefs,
- resolvers
+  typeDefs,
+  resolvers,
+  context: ({ req }) => {
+    // cogemos el user token de los headers
+    const token =
+      req.headers.authorization ||
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOnsiX2lkIjoiNWQ1ODc4MjE5MDM4NDQ1NGZkY2E1ZjFiIiwiZW1haWwiOiJlbm1hc2thQGdtYWlsLmNvbSJ9LCJpYXQiOjE1NjYwODExNDksImV4cCI6MTU2NzI5MDc0OX0.O704rlbFXpJufuizS4ZRDaglv0mMjZMaBPizLmritSo";
+
+    // try to retrieve a user with the token
+    const user = service.decodeToken(token);
+
+    // Añadir usuario al contexto
+    return { user };
+  }
 });
 
 server.listen().then(({ url }) => {
- console.log(`🚀 Server ready at ${url}`)
+  console.log(`🚀 Server ready at ${url}`);
 });
