@@ -53,21 +53,26 @@ const typeDefs = `type Query {
     login (email: String!, password: String!): String
   }`;
 
-
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => {
-    // cogemos el user token de los headers
-    const token =
-      req.headers.authorization ||
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOnsiX2lkIjoiNWQ1ODc4MjE5MDM4NDQ1NGZkY2E1ZjFiIiwiZW1haWwiOiJlbm1hc2thQGdtYWlsLmNvbSJ9LCJpYXQiOjE1NjYwODExNDksImV4cCI6MTU2NzI5MDc0OX0.O704rlbFXpJufuizS4ZRDaglv0mMjZMaBPizLmritSo";
+  context: async ({ req }) => {
+    let authToken = null;
+    let user = null;
 
-    // try to retrieve a user with the token
-    const user = service.decodeToken(token);
+    try {
+      authToken = req.headers.authorization;
 
-    // Añadir usuario al contexto
-    return { user };
+      if (authToken) {
+        user = await service.decodeToken(authToken);
+      }
+    } catch (e) {
+      console.warn(`Unable to authenticate using auth token: ${authToken}`);
+    }
+    return {
+      authToken,
+      user
+    };
   }
 });
 
